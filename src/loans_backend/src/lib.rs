@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use candid::{Principal, CandidType, candid_method};
 use ic_cdk_macros::{init, query, update};
 use ic_cdk::call;
-// use num_traits::ToPrimitive;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize)]
 enum LoanStatus {
@@ -94,7 +93,21 @@ async fn register_lender() -> String {
     btc_address
 }
 
-// btc_amount & runes_required should be Nat type?
+#[update(name = "updateLenderBalance")]
+#[candid_method(update, rename = "updateLenderBalance")]
+fn update_lender_balance(amount: u64) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+
+    with_state(|state| {
+        if let Some(lender_info) = state.lenders.get_mut(&caller) {
+            lender_info.balance = amount;
+            Ok(())
+        } else {
+            Err("Lender not registered".to_string())
+        }
+    })
+}
+
 #[update(name = "createLoanOffer")]
 #[candid_method(update, rename = "createLoanOffer")]
 fn create_loan_offer(
@@ -102,8 +115,6 @@ fn create_loan_offer(
     runes_required: u64,
     max_ltv: f64,
 ) -> Result<u64, String> {
-    // let btc_amount = btc_amount.0.to_u64().ok_or("btc_amount is too large for u64")?;
-    // let runes_required = runes_required.0.to_u64().ok_or("runes_required is too large for u64")?;
 
     let caller = ic_cdk::caller();
 
